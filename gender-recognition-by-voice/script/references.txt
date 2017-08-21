@@ -1,0 +1,9 @@
+https://www.kaggle.com/nirajvermafcb/support-vector-machine-detail-analysis
+
+http://www.statmethods.net/stats/regression.html
+
+https://rpubs.com/FelipeRego/MultipleLinearRegressionInRFirstSteps
+
+https://www.r-bloggers.com/r-tutorial-series-multiple-linear-regression/
+
+http://www.statmethods.net/stats/regression.html
