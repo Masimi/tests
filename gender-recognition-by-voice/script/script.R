@@ -80,3 +80,5 @@ logisticModel2 <- predict(fit2, newdata = test, type='response')
 t4 <- table(test$label, logisticModel2 >= 0.5)
 accuracy_log_test <- (t4[1, 1] + t4[2, 2])/sum(t4)
 accuracy_log_test
+
+
