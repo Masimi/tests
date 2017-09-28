@@ -16,6 +16,10 @@ sapply(df,class)
 sprintf("Records: %s; Variables: %s", dim(df)[1], dim(df)[2])
 table(df$label)
 
+y = df$label
+
+length(unique(y))
+
 ###############
 #Cheking missing values
 ###############
@@ -29,7 +33,7 @@ df$label <- sub("male",0, df$label) #replace string to 0
 df$label = as.numeric(df$label) #convert to numeric
 
 ###############
-# Check the correlaion betrween each features
+# Check the correlaion between each features
 ###############
 cor(df[,1:20])
 
@@ -48,9 +52,10 @@ prop.table(table(train$label))
 sapply(train,summary)
 
 par(mfrow = c(1, 2))
-with(train[train$label == "1", ], hist(meanfreq,  main = "female", col = "cyan"))
+with(train[train$label == "1", ], hist(meanfreq, main = "female", col = "cyan"))
 with(train[train$label == "0", ], hist(meanfreq, main = "male", col = "cyan"))
 
+train[train$label == "1", ]
 ###############
 # Linear regression model
 ###############
