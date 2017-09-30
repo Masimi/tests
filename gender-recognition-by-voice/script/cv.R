@@ -18,37 +18,40 @@ cv.sizes <- function(n, k=10) {
   sizes
 }
 
-cv.partion <- function(y, x, p=0.5, k=10){
+cv.partition <- function(y, x, k=10){
   indices = list()
   n = length(y)
-  label <- unique(y)
-  
+  labels <- as.data.frame(table(y))
   sizes = cv.sizes(n,k=k)
-  values = 1:n
   
-  for (i in 1:length(label)){
-   indices = append(indices, label[i])
+  for (j in 1:length(labels)){
+    # proporcao por label
+    prop <- labels$Freq[j]/n
+    
+    # take a number of sample
+    v <- as.numeric(rownames(x[y==labels[j,1],]))
+    
+    for (i in 1:k){
+      #Resolve divisão desigual de lables
+      limit <- 0
+      if ((i %% 2)==0) {
+        limit <- floor(sizes[i]*prop)
+      }else{
+        limit <- ceiling(sizes[i]*prop)
+      }
+      
+      # take a random sample of given size
+      s <- sample(length(v), limit)
+      
+      # append random sample to list of indices
+      if (j==1) {
+        indices[[i]] = v[s]
+      } else {
+        indices[[i]] = c(indices[[i]],v[s])
+      }
+      # remove sample from values
+      v = setdiff(v,v[s])
+    }
   }
-  
   indices
 }
-
-cv.testing = function(n, k=10) {
-
-  
-  indices = list()
-  sizes = cv.sizes(n, k=k)
-  values = 1:n
-  for (i in 1:k) {
-    # take a random sample of given size
-    s = sample(values, sizes[i])
-    # append random sample to list of indices
-    indices[[i]] = s
-    # remove sample from values
-    values = setdiff(values, s)
-  }
-  indices
-}
-
-
-
