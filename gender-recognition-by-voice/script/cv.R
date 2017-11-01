@@ -1,12 +1,12 @@
 
 cv.sizes <- function(n, k=10) {
-  res <- n %/% k #resultado da divisao
-  rem <- n %%  k #resto da divisao(mod)
+  res <- n %/% k #result of division
+  rem <- n %%  k #rest of division(mod)
   x <- 0
   sizes = c()
   
   for (i in 1:k) {
-    if (rem>0) {
+    if (rem > 0) {
       x <- 1 
       rem <- rem - 1
     }
@@ -15,43 +15,76 @@ cv.sizes <- function(n, k=10) {
     }
     sizes = append(sizes, res + x)
   }
-  sizes
+  return(sizes)
 }
 
-cv.partition <- function(y, x, k=10){
-  indices = list()
+
+cv.partition <- function(formula, data, k=10){
+  
+  # processes formula: (1) process the call
+  mf <- match.call(expand.dots = FALSE)
+  m <- match(c("formula", "data", "k=10"), names(mf), 0)
+  mf <- mf[c(1, m)]
+  
+  # processes formula: (2) set up the model frame
+  f <- formula(formula)
+  mf[[1]] <- as.name("model.frame")
+  mf$formula <- f
+  mf <- eval(mf,parent.frame())
+  
+  # processes formula: (3) extract class and variables from the model
+  y <- model.response(mf)
+  x <- model.matrix(f, data = mf, rhs = 1)
+  z <- model.matrix(f, data = mf, rhs = 2)
+  
+  folds = list()
   n = length(y)
-  labels <- as.data.frame(table(y))
+  predictors <- as.data.frame(table(y))
   sizes = cv.sizes(n,k=k)
   
-  for (j in 1:length(labels)){
+  for (c in 1:length(predictors)){
     # proporcao por label
-    prop <- labels$Freq[j]/n
-    
+    proportion <- predictors$Freq[c]/n
+
     # take a number of sample
-    v <- as.numeric(rownames(x[y==labels[j,1],]))
-    
+    v <- as.numeric(rownames(x[y==predictors[c,1],]))
+
     for (i in 1:k){
-      #Resolve divisão desigual de lables
+      # Solve division uneven of predictors
       limit <- 0
       if ((i %% 2)==0) {
-        limit <- floor(sizes[i]*prop)
-      }else{
-        limit <- ceiling(sizes[i]*prop)
+        limit <- floor(sizes[i]*proportion)
       }
-      
-      # take a random sample of given size
+      else{
+        limit <- ceiling(sizes[i]*proportion)
+      }
+
+      # Get a random sample of given size
       s <- sample(length(v), limit)
-      
-      # append random sample to list of indices
-      if (j==1) {
-        indices[[i]] = v[s]
-      } else {
-        indices[[i]] = c(indices[[i]],v[s])
+
+      # Append random sample to list of folds
+      if (c==1) {
+        folds[[i]] = v[s]
+      }
+      else {
+        folds[[i]] = c(folds[[i]],v[s])
       }
       # remove sample from values
       v = setdiff(v,v[s])
     }
   }
-  indices
+  return(folds)
+  #print(sizes)
 }
+
+chum <- cv.partition(label~., data, 5)
+
+chum[[1]]
+
+for (i in 1:length(chum)) {
+  
+  print(table(chum[[i]]$label))
+  
+}
+
+data[1]
