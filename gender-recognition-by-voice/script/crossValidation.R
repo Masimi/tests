@@ -63,7 +63,11 @@ cross.partition <- function( data , k=100 ){
       
     }
   }
+<<<<<<< HEAD
   
+=======
+  browser()
+>>>>>>> 1ffbe95d2d81caecf1f06db3b00c6df26ce57d3b
   return(partitions)
   
 }
@@ -246,7 +250,11 @@ main <- function(data, k=100){
     }
   }
 
+<<<<<<< HEAD
   write.xlsx(data.result,"C:/projects/tests/gender-recognition-by-voice/reports/svm_pca_k10.xlsx")
+=======
+  write.xlsx(data.result,"C:/Projects/tests/gender-recognition-by-voice/reports/pca_svm.xlsx")
+>>>>>>> 1ffbe95d2d81caecf1f06db3b00c6df26ce57d3b
   
   return(data.result)
   
