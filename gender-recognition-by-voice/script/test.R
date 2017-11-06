@@ -22,39 +22,29 @@ data.pca <- cbind.data.frame(pca$scores[,1:5], label)
 colnames(data.pca)
 
 # Selecao de caracteristicas utilizando Relief
-weights <- relief(label~., data, neighbours.count = 5, sample.size = 3168)
+weights <- relief(label~., data, neighbours.count = 5, sample.size = 300)
 plot(weights)
 
 print(weights)
 
 data.relief <- cutoff.k(weights,5)
 
-# svm
-#particoes <- cross.partition(data , k=5)
 
-model.svm <- main(data.pca, k=10)
+# SVM
+model.svm.completo <- main(data, k=10)
+model.svm.pca <- main(data.pca, k=10)
+model.svm.relief <- main(data.relief, k=10)
 
+# NN
 
+# NB
+model.nb.completo <- main.nb(data, k=10)
+model.nb.pca <- main.nb(data.pca, k=10)
+model.nb.relief <- main.nb(data.relief, k=10)
 
-xpto <- cross.partition(data, 5)
-
-for (i in 1:length(xpto)) {
-  
-  print(table(part[[1]]$label))
-}
-
-xpto[[1]]
-
-sample(10, 3)
+data$label[data$label == 'male'] <- 1
+data$label[data$label == 'female'] <- 0
 
 
-
-subset(data, )
-
-x[y==predictors[c,1],]
-
-sample( y[y=="female",],5 )
-
-
-
+data$label <- as.numeric(data$label)
 

@@ -1,6 +1,7 @@
 # importa bibilioteca
 library(e1071)
 library(xlsx)
+library(nnet)
 
 #---------------------------------------------------------------------------
 # cross.partition -> Divide o dataset em k subconjuntos, com no maximo 1 
@@ -12,20 +13,22 @@ library(xlsx)
 # Retorno: lista contendo os subconjuntos do dataset original
 #--------------------------------------------------------------------------
 cross.partition <- function( data , k=100 ){
-
-  data.class1 <- subset( data , data$label == 'male' )    #Subset contendo apenas as instancias da classe 1
-  data.class2 <- subset( data , data$label == 'female' )  #Subset contendo apenas as instancias da classe 2
-
+  class1 <- unique(data$label)[1]
+  class2 <- unique(data$label)[2]
+  
+  data.class1 <- subset( data , data$label == class1 )    #Subset contendo apenas as instancias da classe 1
+  data.class2 <- subset( data , data$label == class2 )  #Subset contendo apenas as instancias da classe 2
+  
   num.elem <- nrow(data) %/% k    # numero de instancias por conjunto (parte inteira)
   num.class <- num.elem %/% 2     # numero de instancias de cada classe
   
   partitions <- list()  # lista contendo os k conjuntos de instancias
-   
+  
   for(i in 1:k){
-
+    
     instances.class1 <- sample( 1:nrow(data.class1) , num.class , replace=FALSE )     # pega num.class instancias da claase 1 aleatoriamente
     instances.class2 <- sample( 1:nrow(data.class2) , num.class , replace=FALSE )     # pega num.class instancias da claase 2 aleatoriamente
-
+    
     partitions[[i]] <- rbind( data.class1[instances.class1,] , data.class2[instances.class2,] )   # cria particao contendo as instancias sorteadas, e adiciona ? lista
     
     data.class1 <- data.class1[-instances.class1,]    # remove particoes j? seleciondas do dataframe da classe 1 
@@ -40,7 +43,7 @@ cross.partition <- function( data , k=100 ){
     partitions[[i]] <- rbind( partitions[[i]] , data.class1[1,])
     data.class1 <- data.class1[-1,]
     i <- i+1
-      
+    
   }
   
   # distribui??o de instancias restantes da classe 2
@@ -49,7 +52,7 @@ cross.partition <- function( data , k=100 ){
     partitions[[i]] <- rbind( partitions[[i]] , data.class2[1,])
     data.class2 <- data.class2[-1,]
     i <- i+1
-      
+    
   }
   
   if( nrow(data.class2) > 0 ){
@@ -63,7 +66,7 @@ cross.partition <- function( data , k=100 ){
       
     }
   }
-  browser()
+  
   return(partitions)
   
 }
@@ -100,57 +103,39 @@ partition.print <- function( list.data ){
 }
 
 #---------------------------------------------------------------------------
-# cross.valid.svm  -> executa cross valida??o para SVM
-#
-# Parametros: data    -> data frame
-#             k       -> numero de particoes
-#             cKernel -> kernel utilizado pela svm
-#             nDegree -> parametro degree da svm
-#             nGamma  -> parametro gamma da svm
-#             nCoef0  -> parametro coef0 da svm
-#             nCost   -> parametro cost da svm  
-#--------------------------------------------------------------------------
-cross.valid.svm <- function(data, k=100, cKernel, nDegree, nGamma, nCoef0, nCost){
-  particoes <- cross.partition(data,k)   # nLista contendo as particoes para a validacao cruzada
-  measures <- list()                     # Lista contendo os resultados (medidas) de cada execucao
-  
-  for(i in 1:length(particoes)){
-    training <- training.partition(particoes,i)   # amostra de treinamento
-    test <- particoes[[i]]                        # amostra de testes
-    svm.model <- svm( label~. , data=training , kernel=cKernel , cost=nCost , gamma=nGamma , degree=nDegree , coef0=nCoef0 , type="C" )  # Executa treinamento
-    svm.pred <- predict(svm.model, test[,-6], type = "class")   #Executa teste
-    measures[[i]] <- measures.calc( svm.pred , test)   # calcula medidas de acuracia
-  }
-  
-  mean <- measures.mean(measures)   # calcula media dos resultados
-  
-  # cria linha do dataset de resultados
-  result <- data.frame(kernel=cKernel,degree=nDegree,gamma=nGamma,coef0=nCoef0,cost=nCost,erro=mean[[1]],sensibilidade=mean[[2]],precisao=mean[[3]])
-  
-  return(result)
-}
-
-#---------------------------------------------------------------------------
 # measures.calc -> Calcula medidas de acuracia (erro, precisao e sensibilidade)
 #
 # Parametros: predicao da svm, data frame de teste
 #--------------------------------------------------------------------------
 measures.calc <- function(predict,teste){
-  pos <- nrow(teste[teste$label=="male",])     # elementos positivos (class male)
-  neg <- nrow(teste[teste$label=="female",])   # elementos negativos (class female)
+  class1 <- unique(teste$label)[1]
+  class2 <- unique(teste$label)[2]
+  
+  pos <- nrow(teste[teste$label==class1,])     # elementos positivos (class male)
+  neg <- nrow(teste[teste$label==class2,])   # elementos negativos (class female)
   tot <- pos + neg # total de elementos
   tp  <- 0         # true positive
   tn  <- 0         # true negative
   fp  <- 0         # false positive
   fn  <- 0         # false negative
-
+  
   predict <- as.data.frame(predict)
   
-  for(i in 1:tot){
-    if(teste[i,6]=='male' && predict[i,1]=='male') tp <- tp+1 
-    else if (teste[i,6]=='male' && predict[i,1]=='female')  fn <- fn+1
-    else if (teste[i,6]=='female' && predict[i,1]=='female') tn <- tn+1
-    else if (teste[i,6]=='female' && predict[i,1]=='male') fp <- fp+1
+  if(class(class1) == 'numeric'){
+    for(i in 1:tot){
+      if(teste[i,length(teste)] >= 0.5 && predict[i,1] >= 0.5)                 tp <- tp+1 
+      else if (teste[i,length(teste)] >= 0.5 && predict[i,1] < 0.5) fn <- fn+1
+      else if (teste[i,length(teste)] < 0.5 && predict[i,1] < 0.5)  tn <- tn+1
+      else if (teste[i,length(teste)] < 0.5 && predict[i,1] >= 0.5) fp <- fp+1
+    }
+  }
+  else{
+    for(i in 1:tot){
+      if(teste[i,length(teste)]=='male' && predict[i,1]=='male')                       tp <- tp+1 
+      else if (teste[i,length(teste)]=='male' && predict[i,1]=='female')    fn <- fn+1
+      else if (teste[i,length(teste)]=='female' && predict[i,1]=='female')  tn <- tn+1
+      else if (teste[i,length(teste)]=='female' && predict[i,1]=='male')    fp <- fp+1
+    }
   }
   
   err <- (fp + fn) / tot  # erro
@@ -191,13 +176,44 @@ measures.mean <- function(measures){
 }
 
 #---------------------------------------------------------------------------
+# cross.valid.svm  -> executa cross valida??o para SVM
+#
+# Parametros: data    -> data frame
+#             k       -> numero de particoes
+#             cKernel -> kernel utilizado pela svm
+#             nDegree -> parametro degree da svm
+#             nGamma  -> parametro gamma da svm
+#             nCoef0  -> parametro coef0 da svm
+#             nCost   -> parametro cost da svm  
+#--------------------------------------------------------------------------
+cross.valid.svm <- function(data, k=100, cKernel, nDegree, nGamma, nCoef0, nCost){
+  particoes <- cross.partition(data,k)   # nLista contendo as particoes para a validacao cruzada
+  measures <- list()                     # Lista contendo os resultados (medidas) de cada execucao
+  
+  for(i in 1:length(particoes)){
+    training <- training.partition(particoes,i)   # amostra de treinamento
+    test <- particoes[[i]]                        # amostra de testes
+    svm.model <- svm( label~. , data=training , kernel=cKernel , cost=nCost , gamma=nGamma , degree=nDegree , coef0=nCoef0 , type="C" )  # Executa treinamento
+    svm.pred <- predict(svm.model, test[,-length(test)], type = "class")   #Executa teste
+    measures[[i]] <- measures.calc( svm.pred , test)   # calcula medidas de acuracia
+  }
+  
+  mean <- measures.mean(measures)   # calcula media dos resultados
+  
+  # cria linha do dataset de resultados
+  result <- data.frame(kernel=cKernel,degree=nDegree,gamma=nGamma,coef0=nCoef0,cost=nCost,erro=mean[[1]],sensibilidade=mean[[2]],precisao=mean[[3]])
+  
+  return(result)
+}
+
+#---------------------------------------------------------------------------
 # main -> executa diversas chamadas a funcao cross.valid.svm, variando 
 #         a parametriza??o da svm.
 #
 # Parametros: data -> data.frame
 #             k    -> numero de particoes utilizadas na validacao cruzada
 #--------------------------------------------------------------------------
-main <- function(data, k=100){
+main.svm <- function(data, k=100){
   
   data.result <- data.frame()
   
@@ -205,7 +221,7 @@ main <- function(data, k=100){
   aC1 <- c(0.1,0.5,1,5,10)  # cost
   aD  <- c(0.1,0.5,1,5,10)  # degree
   aG  <- c(0.1,0.5,1,5,10)  # gamma
- 
+  
   # Kernel linear
   for(c1 in 1:length(aC1)){
     data.aux <- cross.valid.svm(data=data,k=k,cKernel='linear',nDegree=0,nGamma=0,nCoef0=0,nCost=aC1[c1])
@@ -245,10 +261,123 @@ main <- function(data, k=100){
       }
     }
   }
-
-  write.xlsx(data.result,"C:/Projects/tests/gender-recognition-by-voice/reports/pca_svm.xlsx")
+  
+  #write.xlsx(data.result,"C:/Users/jose.delmondes/Desktop/ReconhecimentoPadroes/svm.xlsx")
   
   return(data.result)
   
 }
 
+#---------------------------------------------------------------------------
+# cross.valid.svm  -> executa cross valida??o para SVM
+#
+# Parametros: data    -> data frame
+#             k       -> numero de particoes
+#             cKernel -> kernel utilizado pela svm
+#             nDegree -> parametro degree da svm
+#             nGamma  -> parametro gamma da svm
+#             nCoef0  -> parametro coef0 da svm
+#             nCost   -> parametro cost da svm  
+#--------------------------------------------------------------------------
+cross.valid.nn <- function(data, k=100, nSize, nRang, nDecay){
+  particoes <- cross.partition(data,k)   # nLista contendo as particoes para a validacao cruzada
+  measures <- list()                     # Lista contendo os resultados (medidas) de cada execucao
+  
+  for(i in 1:length(particoes)){
+    training <- training.partition(particoes,i)   # amostra de treinamento
+    test <- particoes[[i]]                        # amostra de testes
+    nn.model <- nnet(training[,-length(training)],training$label,size=nSize,rang=nRang,decay=nDecay,maxit=500)  # Executa treinamento
+    nn.pred <- predict(nn.model, test[,-length(test)])   #Executa teste
+    measures[[i]] <- measures.calc( nn.pred , test)   # calcula medidas de acuracia
+  }
+  
+  mean <- measures.mean(measures)   # calcula media dos resultados
+  
+  # cria linha do dataset de resultados
+  result <- data.frame(size=nSize,rang=nRang,decay=nDecay,erro=mean[[1]],sensibilidade=mean[[2]],precisao=mean[[3]])
+  
+  return(result)
+}
+
+#---------------------------------------------------------------------------
+# main -> executa diversas chamadas a funcao cross.valid.nn, variando 
+#         a parametriza??o da nn.
+#
+# Parametros: data -> data.frame
+#             k    -> numero de particoes utilizadas na validacao cruzada
+#--------------------------------------------------------------------------
+main.nn <- function(data, k=100){
+  
+  data$label[data$label == 'male'] <- 1
+  data$label[data$label == 'female'] <- 0
+  data$label <- as.numeric(data$label)
+  
+  data.result <- data.frame()
+  
+  nS <- c(2,4,6,8,10)  # size
+  nR <- c(0.2,0.4,0.6,0.8,1)  # rang
+  nD <- c(0.01,0.02,0.04,0.08,0.1)  # decay
+  
+  for(s in 1:length(nS)){
+    for(r in 1:length(nR)){
+      for(d in 1:length(nD)){
+        data.aux <- cross.valid.nn(data,k,nS[s],nR[r],nD[d])
+        #data.aux <- cross.valid.nn(data=data,k=k,nSize=nS[s],nRang=nR[r],nDecay=nD[d])
+        data.result <- rbind(data.result,data.aux)
+        print(sprintf("size = %i, rang = %i, decay = %i.", s, r, d))
+      }
+    }
+  }
+  
+  write.xlsx(data.result,"C:/Users/delmo/Desktop/Mestrado/Reconhecimento de Padroes/nn_relief_k10.xlsx")
+  
+  return(data.result)
+  
+}
+
+#---------------------------------------------------------------------------
+# cross.valid.nb  -> executa cross valida??o para Naive Bayers
+#
+# Parametros: data    -> data frame
+#             k       -> numero de particoes
+#--------------------------------------------------------------------------
+cross.valid.nb <- function(data, k=100){
+  particoes <- cross.partition(data,k)   # nLista contendo as particoes para a validacao cruzada
+  measures <- list()                     # Lista contendo os resultados (medidas) de cada execucao
+  
+  for(i in 1:length(particoes)){
+    training <- training.partition(particoes,i)   # amostra de treinamento
+    test <- particoes[[i]]                        # amostra de testes
+    nb.model <- naiveBayes(label~. , data=training)  # Executa treinamento
+    nb.pred <- predict(nb.model, test[,-length(test)], type = "class")   #Executa teste
+    measures[[i]] <- measures.calc( nb.pred , test)   # calcula medidas de acuracia
+  }
+  
+  mean <- measures.mean(measures)   # calcula media dos resultados
+  
+  # cria linha do dataset de resultados
+  result <- data.frame(erro=mean[[1]],sensibilidade=mean[[2]],precisao=mean[[3]])
+  
+  return(result)
+}
+
+#---------------------------------------------------------------------------
+# main -> executa diversas chamadas a funcao cross.valid.nb, variando 
+#         a parametriza??o da nb.
+#
+# Parametros: data -> data.frame
+#             k    -> numero de particoes utilizadas na validacao cruzada
+#--------------------------------------------------------------------------
+main.nb <- function(data, k=100){
+
+  data.result <- data.frame()
+  
+  data.aux <- cross.valid.nb(data,k)
+  data.result <- rbind(data.result,data.aux)
+  #print(sprintf("size = %i, rang = %i, decay = %i.", s, r, d))
+  
+  write.xlsx(data.result,"C:/Projects/tests/gender-recognition-by-voice/reports/nb_pca_k10.xlsx")
+  
+  return(data.result)
+
+}
