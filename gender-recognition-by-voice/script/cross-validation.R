@@ -10,7 +10,8 @@ data$label = as.numeric(data$label) #convert to numeric
 
 # separando eixo x e y
 x <- data[,1:20]
-y <- data[,21]
+label <- data$label
+label <- as.data.frame(label)
 
 #chamada das funcoes
 source("script/cv.R")
@@ -25,3 +26,17 @@ indices <- cv.partition(y, x, k=5)
 
 df <- data[indices[[5]],]
 table(df$label)
+
+source("script/crossValidation.R")
+
+pca <- princomp(data[,1:20],cor = T,scores = T)
+
+plot(pca)
+
+data.pca <- cbind(pca$scores[,1:5],label)
+
+svm_pca <- main(data.pca,k=10)
+
+
+df <- cross.partition(data = data, k = 100)
+
