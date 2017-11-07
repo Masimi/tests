@@ -376,7 +376,7 @@ main.nb <- function(data, k=100){
   data.result <- rbind(data.result,data.aux)
   #print(sprintf("size = %i, rang = %i, decay = %i.", s, r, d))
   
-  write.xlsx(data.result,"C:/Projects/tests/gender-recognition-by-voice/reports/nb_pca_k10.xlsx")
+  write.xlsx(data.result,"C:/Projects/tests/gender-recognition-by-voice/reports/nb_relief_k10.xlsx")
   
   return(data.result)
 
