@@ -1,26 +1,17 @@
-library('FSelector')
-library('caret')
-data <- read.csv("data/voice.csv", sep = ',',header = TRUE)
+# importa bibilioteca
+library(FSelector)
 
-# Slection Features heuristic
-weights <- relief(label~., data, neighbours.count = 5, sample.size = 3168)
-plot(weights)
+#Importa o dataset
+voice <- read_csv("C:/dataset/voice.csv")
 
+#Ajusta Dataset
+data <- voice[,c(21,1:20)]
+
+#Executa Relief
+weights <- relief(data, neighbours.count = 5, sample.size = 3168)
+
+#imprime resultados
 print(weights)
 
-subset <- cutoff.k(weights,5)
-
-
-f <- as.simple.formula(subset,"label")
-
-print(f)
-
-######
-control <- trainControl(method="repeatedcv", number=10, repeats=100)
-
-model <- train(label~., data, method='rf',trControl=control)
-##14:34 -> 16:50
-importance <- varImp(model, scale=T)
-
-plot(importance)
-
+#Selione 5 melhores caracteristicas
+cutoff.k(weights,5)
