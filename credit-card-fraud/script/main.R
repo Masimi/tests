@@ -143,4 +143,3 @@ conf_matrix.glm
 accuracy.glm <- (conf_matrix.glm[1, 1] + conf_matrix.glm[2, 2])/sum(conf_matrix.glm)
 accuracy.glm
 
-#Fim
